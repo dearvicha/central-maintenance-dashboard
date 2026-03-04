@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central Maintenance — HR Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f0f4f8;--surface:#fff;--surface2:#e8eef5;
+    --border:rgba(30,90,160,0.12);--accent:#0ea5e9;--accent2:#6366f1;
+    --accent3:#10b981;--accent4:#f59e0b;--accent5:#ec4899;
+    --red:#ef4444;--text:#1e293b;--muted:#64748b;--grid:rgba(30,90,160,0.05);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .page{display:none;position:relative;z-index:1;}
+  .page.active{display:block;animation:pageIn .35s cubic-bezier(.4,0,.2,1) both;}
+  @keyframes pageIn{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .wrapper{max-width:1400px;margin:0 auto;padding:24px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;background:linear-gradient(135deg,#1e3a5f,#0ea5e9);border-radius:16px;margin-bottom:24px;box-shadow:0 4px 24px rgba(14,165,233,.25);animation:fadeDown .5s ease both;}
+  .logo-area{display:flex;align-items:center;gap:14px;}
+  .logo-icon{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .logo-text h1{font-size:18px;font-weight:700;color:#fff;}
+  .logo-text p{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;}
+  .header-right{display:flex;align-items:center;gap:16px;}
+  .date-badge{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#fff;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:8px;}
+  .status-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:#6ee7b7;}
+  .dot{width:7px;height:7px;border-radius:50%;background:#6ee7b7;animation:pulse 2s infinite;}
+  .section-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-left:4px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;animation:fadeUp .5s .1s ease both;}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:default;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+  .kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;}
+  .kpi-card.blue::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .kpi-card.green::before{background:linear-gradient(90deg,var(--accent3),#06b6d4)}
+  .kpi-card.orange::before{background:linear-gradient(90deg,var(--accent4),#fbbf24)}
+  .kpi-card.red::before{background:linear-gradient(90deg,var(--red),var(--accent5))}
+  .kpi-icon{font-size:22px;margin-bottom:10px;}
+  .kpi-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .kpi-value{font-size:36px;font-weight:700;letter-spacing:-1px;line-height:1;}
+  .kpi-value.blue{color:var(--accent)}.kpi-value.green{color:var(--accent3)}.kpi-value.orange{color:var(--accent4)}.kpi-value.red{color:var(--red)}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:8px;}
+  .kpi-sub span{color:var(--accent3)}.kpi-sub span.neg{color:var(--red)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+  .card-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .oc-table{width:100%;border-collapse:collapse;}
+  .oc-table th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);letter-spacing:.5px;}
+  .oc-table th:not(:first-child){text-align:center;}
+  .oc-table td{padding:10px;font-size:13px;border-bottom:1px solid rgba(30,90,160,.06);transition:background .15s;}
+  .oc-table td:not(:first-child){text-align:center;}
+  .oc-table tr.dept-row{cursor:pointer;}
+  .oc-table tr.dept-row:hover td{background:#f0f9ff;}
+  .oc-table tr.dept-row:hover .dept-name-cell{color:var(--accent);}
+  .oc-table tr:last-child td{border-bottom:none;}
+  .click-hint{font-size:10px;color:var(--accent);margin-left:6px;opacity:0;transition:opacity .15s;}
+  .dept-row:hover .click-hint{opacity:1;}
+  .dept-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin-left:6px;font-weight:600;letter-spacing:.5px;vertical-align:middle;}
+  .bar-wrap{width:100%;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:2px;border:1px solid var(--border);}
+  .bar-fill{height:100%;border-radius:3px;}
+  .vacancy-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;}
+  .vacancy-badge.ok{background:rgba(16,185,129,.1);color:var(--accent3)}
+  .vacancy-badge.info{background:rgba(14,165,233,.1);color:var(--accent)}
+
+  /* resigned stats section */
+  .resigned-section{margin-top:24px;animation:fadeUp .5s .25s ease both;}
+  .res-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .res-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,.06);text-align:center;}
+  .res-stat-num{font-size:32px;font-weight:700;line-height:1;margin:8px 0 4px;}
+  .res-stat-label{font-size:12px;color:var(--muted);}
+  .res-charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .res-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .res-bar-label{font-size:12px;color:var(--muted);width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .res-bar-wrap{flex:1;height:20px;background:var(--bg);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .res-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;}
+  .res-bar-count{font-size:12px;font-weight:700;width:20px;text-align:right;flex-shrink:0;}
+  .res-status-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+  .res-status-row:last-child{border-bottom:none;}
+
+  /* Site breakdown */
+  .site-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;animation:fadeUp .5s .2s ease both;}
+
+  /* Back btn */
+  .back-btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent);background:white;border:1px solid var(--border);padding:8px 16px;border-radius:10px;cursor:pointer;margin-bottom:20px;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.06);animation:fadeDown .4s ease both;}
+  .back-btn:hover{background:var(--accent);color:white;border-color:var(--accent);}
+
+  /* Detail page */
+  .detail-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;animation:fadeDown .4s ease both;}
+  .dept-icon-lg{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+  .dept-header-info h2{font-size:22px;font-weight:700;}
+  .dept-header-info p{font-size:13px;color:var(--muted);margin-top:3px;}
+  .detail-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;animation:fadeUp .4s .05s ease both;}
+  .detail-kpi .kpi-card{padding:16px 18px;}
+  .detail-kpi .kpi-value{font-size:28px;}
+  .detail-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:20px;animation:fadeUp .4s .1s ease both;}
+  .emp-table{width:100%;border-collapse:collapse;}
+  .emp-table th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);letter-spacing:.5px;}
+  .emp-table td{padding:9px 10px;font-size:13px;border-bottom:1px solid rgba(30,90,160,.05);}
+  .emp-table tr:last-child td{border-bottom:none;}
+  .emp-table tr:hover td{background:#f8fafc;}
+  .emp-avatar{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-right:8px;vertical-align:middle;}
+  .emp-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .emp-status.active{background:rgba(16,185,129,.1);color:var(--accent3)}
+  .pos-list{display:flex;flex-direction:column;gap:8px;}
+  .pos-item{padding:10px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--border);}
+  .pos-title{font-size:13px;font-weight:600;}
+  .pos-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between;}
+  .detail-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;animation:fadeUp .4s .15s ease both;}
+
+  /* Level bar chart */
+  .level-bars{display:flex;flex-direction:column;gap:8px;}
+  .level-row{display:flex;align-items:center;gap:10px;}
+  .level-name{font-size:12px;color:var(--muted);width:100px;flex-shrink:0;}
+  .level-bar-wrap{flex:1;height:20px;background:var(--bg);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .level-bar{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;}
+  .level-count{font-size:12px;width:24px;text-align:right;flex-shrink:0;}
+
+  /* Site chips */
+  .site-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .site-chip{font-size:12px;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(14,165,233,.08);color:var(--accent);border:1px solid rgba(14,165,233,.15);}
+
+  /* Resigned in detail */
+  .res-list{display:flex;flex-direction:column;gap:8px;}
+  .res-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.12);}
+  .res-item-name{font-size:13px;font-weight:500;}
+  .res-item-pos{font-size:11px;color:var(--muted);margin-top:1px;}
+  .res-status-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(239,68,68,.1);color:var(--red);white-space:nowrap;}
+
+  /* ===== NAV TABS ===== */
+  .main-nav{display:flex;gap:6px;margin-bottom:24px;background:var(--surface);padding:6px;border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.05);width:fit-content;animation:fadeDown .5s .05s ease both;}
+  .nav-btn{font-size:13px;font-weight:600;padding:9px 20px;border-radius:9px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:7px;}
+  .nav-btn:hover{background:var(--bg);color:var(--text);}
+  .nav-btn.active{background:linear-gradient(135deg,#1e3a5f,#0ea5e9);color:#fff;box-shadow:0 2px 10px rgba(14,165,233,.3);}
+  .nav-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.25);}
+  .nav-badge.red{background:rgba(239,68,68,.15);color:var(--red);}
+
+  /* ===== FEEDBACK FORM ===== */
+  .fb-layout{display:grid;grid-template-columns:1fr 1.2fr;gap:20px;animation:fadeUp .5s .1s ease both;}
+  .fb-form-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+  .fb-form-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+  .fb-field{margin-bottom:16px;}
+  .fb-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;display:block;letter-spacing:.3px;}
+  .fb-input,.fb-select,.fb-textarea{width:100%;font-family:inherit;font-size:13px;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;}
+  .fb-input:focus,.fb-select:focus,.fb-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.1);background:#fff;}
+  .fb-textarea{resize:vertical;min-height:110px;line-height:1.6;}
+  .fb-select{cursor:pointer;}
+  .fb-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .fb-anon{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);cursor:pointer;}
+  .fb-anon input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent2);}
+  .fb-anon-label{font-size:13px;color:var(--accent2);font-weight:500;}
+  .fb-submit{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#1e3a5f,#0ea5e9);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .fb-submit:hover{opacity:.9;transform:translateY(-1px);}
+  .fb-submit:active{transform:translateY(0);}
+  .fb-success{display:none;text-align:center;padding:28px;animation:fadeUp .4s ease both;}
+  .fb-success-icon{font-size:48px;margin-bottom:12px;}
+  .fb-success-title{font-size:18px;font-weight:700;color:var(--accent3);margin-bottom:6px;}
+  .fb-success-sub{font-size:13px;color:var(--muted);}
+  .fb-reset{margin-top:16px;font-size:13px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:600;}
+
+  /* ===== FEEDBACK STATS (right panel) ===== */
+  .fb-stats-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+  .fb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+  .fb-stat-row:last-child{border-bottom:none;}
+  .fb-cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .fb-stat-label{font-size:13px;margin-left:10px;flex:1;}
+  .fb-stat-count{font-size:13px;font-weight:700;color:var(--accent);}
+  .fb-recent{margin-top:20px;}
+  .fb-recent-title{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
+  .fb-item{padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--border);margin-bottom:8px;}
+  .fb-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .fb-item-cat{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;}
+  .fb-item-dept{font-size:11px;color:var(--muted);}
+  .fb-item-time{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .fb-item-msg{font-size:13px;line-height:1.5;color:var(--text);}
+  .fb-anon-tag{font-size:10px;color:var(--muted);margin-top:4px;}
+
+  /* ===== ADMIN PAGE ===== */
+  .admin-login{max-width:400px;margin:60px auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;box-shadow:0 4px 24px rgba(0,0,0,.08);animation:fadeUp .4s ease both;text-align:center;}
+  .admin-login h2{font-size:20px;font-weight:700;margin-bottom:6px;}
+  .admin-login p{font-size:13px;color:var(--muted);margin-bottom:24px;}
+  .admin-panel{animation:fadeUp .4s ease both;}
+  .admin-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .admin-filter{display:flex;gap:8px;flex-wrap:wrap;}
+  .filter-btn{font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:inherit;transition:all .15s;}
+  .filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .admin-table{width:100%;border-collapse:collapse;}
+  .admin-table th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);letter-spacing:.5px;background:var(--bg);}
+  .admin-table td{padding:12px;font-size:13px;border-bottom:1px solid rgba(30,90,160,.05);vertical-align:top;}
+  .admin-table tr:hover td{background:#f8fafc;}
+  .admin-table tr:last-child td{border-bottom:none;}
+  .cat-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;}
+  .logout-btn{font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:var(--red);font-family:inherit;font-weight:600;transition:all .15s;}
+  .logout-btn:hover{background:var(--red);color:#fff;}
+
+
+  /* ===== SEARCH ===== */
+  .search-bar-wrap{display:flex;align-items:center;gap:12px;margin-bottom:24px;animation:fadeDown .4s .08s ease both;}
+  .search-box{flex:1;max-width:480px;position:relative;}
+  .search-box input{width:100%;padding:11px 16px 11px 42px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);outline:none;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.12),0 2px 8px rgba(0,0,0,.05);}
+  .search-box .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+  .search-box .search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;cursor:pointer;color:var(--muted);display:none;background:none;border:none;padding:2px 6px;border-radius:6px;}
+  .search-box .search-clear:hover{background:var(--bg);}
+  .search-filter{display:flex;gap:6px;flex-wrap:wrap;}
+  .sf-btn{font-size:12px;padding:7px 14px;border-radius:9px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);font-family:inherit;transition:all .15s;font-weight:500;}
+  .sf-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .sf-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(14,165,233,.25);}
+
+  /* Search results overlay */
+  .search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:100;max-height:400px;overflow-y:auto;display:none;}
+  .search-results.show{display:block;animation:fadeDown .2s ease both;}
+  .sr-header{padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg);border-radius:14px 14px 0 0;}
+  .sr-item{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s;border-bottom:1px solid rgba(30,90,160,.05);}
+  .sr-item:last-child{border-bottom:none;}
+  .sr-item:hover{background:#f0f9ff;}
+  .sr-avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+  .sr-info{flex:1;min-width:0;}
+  .sr-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr-name mark{background:rgba(14,165,233,.15);color:var(--accent);border-radius:3px;padding:0 2px;}
+  .sr-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .sr-dept{font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;flex-shrink:0;}
+  .sr-empty{padding:28px;text-align:center;color:var(--muted);font-size:13px;}
+
+  /* Improved header */
+  .nav-search-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;animation:fadeDown .4s .05s ease both;}
+  .nav-search-row .main-nav{margin-bottom:0;animation:none;}
+
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: MAIN -->
+<div class="page active" id="page-main">
+<div class="wrapper">
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">🔧</div>
+      <div class="logo-text">
+        <h1>Central Maintenance</h1>
+        <p>HR Operations Dashboard — ภาพรวมบุคลากร</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="date-badge" id="dateDisplay">—</div>
+      <div class="status-dot"><div class="dot"></div>Live</div>
+    </div>
+  </header>
+
+
+  <!-- NAV + SEARCH ROW -->
+  <div class="nav-search-row">
+    <div class="main-nav">
+      <button class="nav-btn active" onclick="switchMainTab('dashboard',this)">📊 Dashboard</button>
+      <button class="nav-btn" onclick="switchMainTab('feedback',this)">💬 ส่งความคิดเห็น</button>
+      <button class="nav-btn" onclick="switchMainTab('admin',this)">🔐 Admin <span class="nav-badge red" id="adminBadge">0</span></button>
+    </div>
+    <div class="search-box" id="globalSearchBox">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="globalSearch" placeholder="ค้นหาพนักงาน ชื่อ ตำแหน่ง ฝ่าย..." oninput="onSearch(this.value)" onfocus="onSearchFocus()" autocomplete="off">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- TAB: DASHBOARD -->
+  <div id="tab-dashboard">
+  <div class="section-label">ภาพรวมบุคลากร</div>
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="kpi-icon">👥</div><div class="kpi-label">พนักงาน Active</div><div class="kpi-value blue">546</div><div class="kpi-sub">จาก 11 ฝ่าย ทั้งสายงาน</div></div>
+    <div class="kpi-card green"><div class="kpi-icon">🏭</div><div class="kpi-label">ฝ่ายทั้งหมด</div><div class="kpi-value green">11</div><div class="kpi-sub">ครอบคลุม IP1 · IP2 · DAP · Silom</div></div>
+    <div class="kpi-card orange"><div class="kpi-icon">🔩</div><div class="kpi-label">ฝ่ายใหญ่สุด</div><div class="kpi-value orange">94</div><div class="kpi-sub">Facilitate Service</div></div>
+    <div class="kpi-card red"><div class="kpi-icon">📤</div><div class="kpi-label">Resigned / ย้ายออก</div><div class="kpi-value red">23</div><div class="kpi-sub"><span class="neg">รวมทุกฝ่าย</span> · ดูรายละเอียดด้านล่าง</div></div>
+  </div>
+
+  <div class="section-label">โครงสร้างองค์กร (OC) — คลิกฝ่ายเพื่อดูรายละเอียด</div>
+  <div class="card" style="margin-bottom:24px;animation:fadeUp .5s .15s ease both;">
+    <table class="oc-table">
+      <thead><tr><th>ฝ่าย</th><th>จำนวน (Active)</th><th>สัดส่วน</th><th>Site หลัก</th><th>แผนกย่อย</th></tr></thead>
+      <tbody id="ocTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-label">Site Distribution</div>
+  <div class="site-grid">
+    <div class="card">
+      <div class="card-title"><span>🏭</span> IP1 — หลัก</div>
+      <div style="font-size:36px;font-weight:700;color:var(--accent)">509</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">คน · 93.2% ของทั้งหมด</div>
+      <div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:93%;background:var(--accent)"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>🏗️</span> IP2</div>
+      <div style="font-size:36px;font-weight:700;color:var(--accent2)">54</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">คน · 9.9% ของทั้งหมด</div>
+      <div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:10%;background:var(--accent2)"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>🗺️</span> DAP / Silom / อื่นๆ</div>
+      <div style="font-size:36px;font-weight:700;color:var(--accent3)">4</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">คน · DAP 3 · Silom 1</div>
+      <div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:1%;background:var(--accent3)"></div></div>
+    </div>
+  </div>
+
+  <!-- Resigned Stats Section -->
+  <div class="resigned-section">
+    <div class="section-label">สถิติการลาออก / ย้ายออก</div>
+    <div class="res-stats-grid">
+      <div class="res-stat-card">
+        <div style="font-size:22px">📤</div>
+        <div class="res-stat-num" style="color:var(--red)">23</div>
+        <div class="res-stat-label">พนักงานลาออก/ย้ายออกทั้งหมด</div>
+      </div>
+      <div class="res-stat-card">
+        <div style="font-size:22px">🏭</div>
+        <div class="res-stat-num" style="color:var(--accent4)" id="resMaxDeptNum">6</div>
+        <div class="res-stat-label">สูงสุดใน <span id="resMaxDeptName">Workshop&PdM</span></div>
+      </div>
+      <div class="res-stat-card">
+        <div style="font-size:22px">📊</div>
+        <div class="res-stat-num" style="color:var(--accent2)">4.0%</div>
+        <div class="res-stat-label">อัตราการลาออก (จาก 569 คนทั้งหมด)</div>
+      </div>
+    </div>
+    <div class="res-charts-grid">
+      <div class="card">
+        <div class="card-title"><span>📊</span> จำนวนลาออกแยกตามฝ่าย</div>
+        <div id="resByDeptChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>🔖</span> ประเภทการออก</div>
+        <div id="resByStatusChart"></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end tab-dashboard -->
+
+  <!-- TAB: FEEDBACK FORM -->
+  <div id="tab-feedback" style="display:none">
+    <div class="fb-layout">
+      <div class="fb-form-card">
+        <div id="fbFormWrap">
+          <div class="fb-form-title"><span>💬</span> ส่งความคิดเห็น / ข้อเสนอแนะ</div>
+          <div class="fb-field">
+            <label class="fb-label">หมวดหมู่ *</label>
+            <select class="fb-select" id="fbCat">
+              <option value="">-- เลือกหมวดหมู่ --</option>
+              <option value="สวัสดิการ">🎁 สวัสดิการ</option>
+              <option value="ความปลอดภัย">⛑️ ความปลอดภัย</option>
+              <option value="อุปกรณ์/เครื่องมือ">🔧 อุปกรณ์/เครื่องมือ</option>
+              <option value="สภาพแวดล้อมการทำงาน">🏭 สภาพแวดล้อมการทำงาน</option>
+              <option value="การสื่อสาร">📢 การสื่อสาร</option>
+              <option value="ข้อเสนอแนะทั่วไป">💡 ข้อเสนอแนะทั่วไป</option>
+              <option value="อื่นๆ">📝 อื่นๆ</option>
+            </select>
+          </div>
+          <div class="fb-row">
+            <div class="fb-field">
+              <label class="fb-label">ฝ่ายของคุณ *</label>
+              <select class="fb-select" id="fbDept">
+                <option value="">-- เลือกฝ่าย --</option>
+                <option>Facilitate Service</option>
+                <option>Welding Service</option>
+                <option>Workshop&PdM</option>
+                <option>Mechanical Service</option>
+                <option>Electrical Service</option>
+                <option>Automation Service</option>
+                <option>Maintenance E85</option>
+                <option>IT Infrastructure , Securities & Services</option>
+                <option>Civil Maintenance & Refractory</option>
+                <option>Efficiency Central Maintenance</option>
+                <option>Central Maintenance</option>
+              </select>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">ระดับความเร่งด่วน</label>
+              <select class="fb-select" id="fbPriority">
+                <option value="ปกติ">🟢 ปกติ</option>
+                <option value="ปานกลาง">🟡 ปานกลาง</option>
+                <option value="เร่งด่วน">🔴 เร่งด่วน</option>
+              </select>
+            </div>
+          </div>
+          <div class="fb-field">
+            <label class="fb-label">ความคิดเห็น / ข้อเสนอแนะ *</label>
+            <textarea class="fb-textarea" id="fbMsg" placeholder="พิมพ์ความคิดเห็นของคุณที่นี่..."></textarea>
+          </div>
+          <div class="fb-field">
+            <label class="fb-anon" onclick="toggleAnon()">
+              <input type="checkbox" id="fbAnon">
+              <span class="fb-anon-label">🔒 ส่งแบบไม่ระบุชื่อ (ผู้บริหารจะไม่เห็นชื่อของคุณ)</span>
+            </label>
+          </div>
+          <div class="fb-field" id="fbNameField">
+            <label class="fb-label">ชื่อ-นามสกุล (ถ้าต้องการระบุ)</label>
+            <input class="fb-input" id="fbName" type="text" placeholder="เช่น นาย สมชาย ใจดี">
+          </div>
+          <button class="fb-submit" onclick="submitFeedback()">
+            <span>📨</span> ส่งความคิดเห็น
+          </button>
+        </div>
+        <div class="fb-success" id="fbSuccess">
+          <div class="fb-success-icon">✅</div>
+          <div class="fb-success-title">ส่งความคิดเห็นสำเร็จ!</div>
+          <div class="fb-success-sub">ขอบคุณสำหรับความคิดเห็นของคุณ<br>ทีมงานจะนำไปพิจารณาและปรับปรุงต่อไป</div>
+          <button class="fb-reset" onclick="resetForm()">+ ส่งความคิดเห็นอีกครั้ง</button>
+        </div>
+      </div>
+      <div class="fb-stats-card">
+        <div class="card-title"><span>📊</span> สถิติความคิดเห็น</div>
+        <div id="fbStatsList"></div>
+        <div class="fb-recent">
+          <div class="fb-recent-title">ความคิดเห็นล่าสุด</div>
+          <div id="fbRecentList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ADMIN -->
+  <div id="tab-admin" style="display:none">
+    <div id="adminLoginWrap">
+      <div class="admin-login">
+        <div style="font-size:40px;margin-bottom:12px">🔐</div>
+        <h2>Admin Login</h2>
+        <p>เข้าสู่ระบบเพื่อดูความคิดเห็นทั้งหมด</p>
+        <div class="fb-field"><input class="fb-input" type="password" id="adminPass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+        <button class="fb-submit" onclick="adminLogin()">🔓 เข้าสู่ระบบ</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:12px">รหัสผ่านทดสอบ: admin1234</div>
+      </div>
+    </div>
+    <div id="adminPanelWrap" style="display:none">
+      <div class="admin-panel">
+        <div class="admin-toolbar">
+          <div>
+            <div class="card-title" style="margin-bottom:4px"><span>📋</span> ความคิดเห็นทั้งหมด (<span id="adminCount">0</span> รายการ)</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="admin-filter" id="adminFilter">
+              <button class="filter-btn active" onclick="filterAdmin('all',this)">ทั้งหมด</button>
+              <button class="filter-btn" onclick="filterAdmin('เร่งด่วน',this)">🔴 เร่งด่วน</button>
+              <button class="filter-btn" onclick="filterAdmin('ปานกลาง',this)">🟡 ปานกลาง</button>
+            </div>
+            <button class="logout-btn" onclick="adminLogout()">ออกจากระบบ</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="admin-table">
+            <thead><tr><th>เวลา</th><th>หมวดหมู่</th><th>ฝ่าย</th><th>ความเร่งด่วน</th><th>ความคิดเห็น</th><th>ผู้ส่ง</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- PAGE 2: DEPT DETAIL -->
+<div class="page" id="page-detail">
+<div class="wrapper">
+  <button class="back-btn" onclick="goBack()">← กลับหน้าหลัก</button>
+  <div class="detail-header">
+    <div class="dept-icon-lg" id="detailIcon"></div>
+    <div class="dept-header-info">
+      <h2 id="detailName"></h2>
+      <p id="detailDesc"></p>
+    </div>
+  </div>
+  <div class="detail-kpi" id="detailKpi"></div>
+  <div class="detail-grid">
+    <div class="card">
+      <div class="card-title"><span>👤</span> รายชื่อพนักงาน (แสดง 8 คนแรก)</div>
+      <table class="emp-table">
+        <thead><tr><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>ระดับ</th><th>Site</th></tr></thead>
+        <tbody id="empTableBody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title"><span>📌</span> แผนกย่อย</div>
+        <div class="pos-list" id="posList"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>🗺️</span> Site ที่ปฏิบัติงาน</div>
+        <div class="site-chips" id="siteChips"></div>
+      </div>
+    </div>
+  </div>
+  <div class="detail-bottom">
+    <div class="card">
+      <div class="card-title"><span>📊</span> สัดส่วนระดับตำแหน่ง</div>
+      <div class="level-bars" id="levelBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📤</span> พนักงานที่ลาออก / ย้ายออก</div>
+      <div class="res-list" id="detailResigned"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkFEbxcAtcJ45Ol0mnWYD7JEUawbIwtvuij-sYW_yA63VUIxzW9-IaicaiSyrRB9vPeftkiaGDahb7/pub?output=csv";
+
+const now = new Date();
+const thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+document.getElementById('dateDisplay').textContent = `${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear()+543}`;
+
+// ===== LOADING STATE =====
+function showLoading() {
+  document.getElementById('ocTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><div style="font-size:24px;margin-bottom:8px">⏳</div>กำลังโหลดข้อมูลจาก Google Sheet...</td></tr>';
+}
+
+function showError(msg) {
+  document.getElementById('ocTableBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--red)"><div style="font-size:24px;margin-bottom:8px">⚠️</div>${msg}</td></tr>`;
+}
+
+// ===== PARSE CSV =====
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for(let c of line) {
+      if(c==='"') inQ=!inQ;
+      else if(c===',' && !inQ) { vals.push(cur.trim()); cur=''; }
+      else cur+=c;
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = (vals[i]||'').replace(/"/g,'').trim());
+    return obj;
+  }).filter(r => r[headers[0]]);
+}
+
+// ===== PROCESS DATA =====
+function processData(rows) {
+  const deptIcons = {
+    'Facilitate Service':'🏗️','Welding Service':'🔥','Workshop&PdM':'🔩',
+    'Mechanical Service':'⚙️','Electrical Service':'⚡','Automation Service':'🎛️',
+    'Maintenance E85':'🏭','IT Infrastructure , Securities & Services':'💻',
+    'Civil Maintenance & Refractory':'🧱','Efficiency Central Maintenance':'📊',
+    'Central Maintenance':'🔧','Workshop&PDM':'🔩'
+  };
+  const deptColors = {
+    'Facilitate Service':'0ea5e9','Welding Service':'ef4444','Workshop&PdM':'6366f1',
+    'Mechanical Service':'10b981','Electrical Service':'f59e0b','Automation Service':'ec4899',
+    'Maintenance E85':'14b8a6','IT Infrastructure , Securities & Services':'8b5cf6',
+    'Civil Maintenance & Refractory':'84cc16','Efficiency Central Maintenance':'f97316',
+    'Central Maintenance':'64748b','Workshop&PDM':'6366f1'
+  };
+
+  // normalize Workshop&PDM -> Workshop&PdM
+  rows.forEach(r => { if(r['ฝ่าย']==='Workshop&PDM') r['ฝ่าย']='Workshop&PdM'; });
+
+  const active = rows.filter(r => r['Status']==='Active');
+  const resigned = rows.filter(r => r['Status']==='Resigned' || r['Status']==='Rotate - ย้ายออก');
+
+  // Group by dept
+  const deptMap = {};
+  active.forEach(r => {
+    const dept = r['ฝ่าย'] || 'ไม่ระบุ';
+    if(!deptMap[dept]) deptMap[dept] = { name:dept, employees:[], sections:{}, levels:{}, sites:{}, resigned:[] };
+    deptMap[dept].employees.push(r);
+    const sec = r['แผนก'] || '';
+    if(sec && sec !== dept) deptMap[dept].sections[sec] = (deptMap[dept].sections[sec]||0)+1;
+    const lv = r['ระดับตำแหน่ง (หลัก)'] || '';
+    if(lv) deptMap[dept].levels[lv] = (deptMap[dept].levels[lv]||0)+1;
+    const site = r['Site ที่ปฏิบัติงาน'] || '';
+    if(site) deptMap[dept].sites[site] = (deptMap[dept].sites[site]||0)+1;
+  });
+
+  resigned.forEach(r => {
+    const dept = r['ฝ่าย'] || 'ไม่ระบุ';
+    if(deptMap[dept]) deptMap[dept].resigned.push(r);
+  });
+
+  // Build depts array
+  const depts = Object.values(deptMap).map(d => {
+    const levelShort = {};
+    Object.entries(d.levels).forEach(([k,v]) => {
+      const s = k.replace('7. ระดับปฏิบัติการ (ปวส.)','ปวส.')
+                 .replace('8. Skilled worker','Skilled')
+                 .replace('6. ระดับปฏิบัติการ (ป.ตรี)','ป.ตรี')
+                 .replace('5. Supervisor/Specialist','Supervisor')
+                 .replace('4. Section Mgr.','Section Mgr.')
+                 .replace('3. Manager Level','Manager')
+                 .replace('2. Director Level','Director');
+      levelShort[s] = v;
+    });
+    return {
+      name: d.name,
+      icon: deptIcons[d.name] || '🏢',
+      color: deptColors[d.name] || '64748b',
+      actual: d.employees.length,
+      resigned: d.resigned.length,
+      resignedEmps: d.resigned.map(r => ({
+        name: `${r['คำนำหน้า']||''} ${r['ชื่อจริง']||''} ${r['นามสกุล']||''}`.trim(),
+        pos: r['ตำแหน่งปัจจุบัน'] || '',
+        status: r['Status'] || 'Resigned',
+        date: r['วันที่ออก'] || ''
+      })),
+      sections: Object.entries(d.sections).map(([name,count]) => ({name,count})),
+      employees: d.employees.slice(0,8).map(r => ({
+        name: `${r['คำนำหน้า']||''} ${r['ชื่อจริง']||''} ${r['นามสกุล']||''}`.trim(),
+        pos: (r['ตำแหน่งปัจจุบัน']||'').slice(0,40),
+        level: (r['ระดับตำแหน่ง (หลัก)']||'')
+                .replace('7. ระดับปฏิบัติการ (ปวส.)','ปวส.')
+                .replace('8. Skilled worker','Skilled')
+                .replace('6. ระดับปฏิบัติการ (ป.ตรี)','ป.ตรี')
+                .replace('5. Supervisor/Specialist','Supervisor')
+                .replace('4. Section Mgr.','Section Mgr.')
+                .replace('3. Manager Level','Manager')
+                .replace('2. Director Level','Director'),
+        site: r['Site ที่ปฏิบัติงาน'] || '',
+        status: 'active'
+      })),
+      levels: levelShort,
+      sites: d.sites
+    };
+  }).sort((a,b) => b.actual - a.actual);
+
+  return { depts, active, resigned };
+}
+
+// ===== RENDER DASHBOARD =====
+function renderDashboard(data) {
+  const { depts, active, resigned } = data;
+  const total = active.length;
+
+  // KPI
+  const biggestDept = depts[0];
+  document.querySelector('.kpi-grid').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-icon">👥</div><div class="kpi-label">พนักงาน Active</div><div class="kpi-value blue">${total}</div><div class="kpi-sub">จาก ${depts.length} ฝ่าย ทั้งสายงาน</div></div>
+    <div class="kpi-card green"><div class="kpi-icon">🏭</div><div class="kpi-label">ฝ่ายทั้งหมด</div><div class="kpi-value green">${depts.length}</div><div class="kpi-sub">ครอบคลุมหลาย Site</div></div>
+    <div class="kpi-card orange"><div class="kpi-icon">${biggestDept.icon}</div><div class="kpi-label">ฝ่ายใหญ่สุด</div><div class="kpi-value orange">${biggestDept.actual}</div><div class="kpi-sub">${biggestDept.name}</div></div>
+    <div class="kpi-card red"><div class="kpi-icon">📤</div><div class="kpi-label">Resigned / ย้ายออก</div><div class="kpi-value red">${resigned.length}</div><div class="kpi-sub"><span class="neg">รวมทุกฝ่าย</span></div></div>`;
+
+  // OC Table
+  const tbody = document.getElementById('ocTableBody');
+  tbody.innerHTML = '';
+  depts.forEach((d,i) => {
+    const pct = Math.round((d.actual/total)*100);
+    const siteStr = Object.entries(d.sites).map(([k,v])=>`${k}:${v}`).join(' · ');
+    const tr = document.createElement('tr');
+    tr.className = 'dept-row';
+    tr.innerHTML = `
+      <td><span style="font-size:16px;margin-right:8px">${d.icon}</span><span class="dept-name-cell" style="font-weight:600">${d.name}</span><span class="click-hint">→ ดูรายละเอียด</span></td>
+      <td><span style="font-size:18px;font-weight:700;color:#${d.color}">${d.actual}</span></td>
+      <td><div style="font-size:11px;color:var(--muted);margin-bottom:3px">${pct}%</div><div class="bar-wrap" style="width:120px"><div class="bar-fill" style="width:${Math.min(pct*3,100)}%;background:#${d.color}"></div></div></td>
+      <td style="font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">${siteStr}</td>
+      <td><span class="vacancy-badge ${d.sections.length>0?'info':'ok'}">${d.sections.length>0?d.sections.length+' แผนก':'ไม่แยกแผนก'}</span></td>`;
+    tr.addEventListener('click', () => openDept(i, depts, total));
+    tbody.appendChild(tr);
+  });
+
+  // Resigned stats
+  renderResignedStats(depts, resigned, total);
+
+  // Site summary
+  const siteTotal = {};
+  active.forEach(r => {
+    const site = r['Site ที่ปฏิบัติงาน'] || 'ไม่ระบุ';
+    siteTotal[site] = (siteTotal[site]||0)+1;
+  });
+  const ip1 = siteTotal['IP1']||0, ip2 = siteTotal['IP2']||0;
+  const others = total - ip1 - ip2;
+  document.querySelector('.site-grid').innerHTML = `
+    <div class="card"><div class="card-title"><span>🏭</span> IP1 — หลัก</div><div style="font-size:36px;font-weight:700;color:var(--accent)">${ip1}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">คน · ${Math.round(ip1/total*100)}% ของทั้งหมด</div><div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:${Math.round(ip1/total*100)}%;background:var(--accent)"></div></div></div>
+    <div class="card"><div class="card-title"><span>🏗️</span> IP2</div><div style="font-size:36px;font-weight:700;color:var(--accent2)">${ip2}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">คน · ${Math.round(ip2/total*100)}% ของทั้งหมด</div><div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:${Math.round(ip2/total*100)}%;background:var(--accent2)"></div></div></div>
+    <div class="card"><div class="card-title"><span>🗺️</span> Site อื่นๆ</div><div style="font-size:36px;font-weight:700;color:var(--accent3)">${others}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">คน · ${Object.entries(siteTotal).filter(([k])=>k!=='IP1'&&k!=='IP2').map(([k,v])=>`${k}:${v}`).join(' · ')}</div><div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:${Math.max(Math.round(others/total*100),1)}%;background:var(--accent3)"></div></div></div>`;
+
+  // Store depts globally for detail page
+  window._depts = depts;
+  window._total = total;
+}
+
+// ===== RESIGNED STATS (by month if date available) =====
+function renderResignedStats(depts, resigned, total) {
+  const resTotal = resigned.length;
+  const maxDept = depts.filter(d=>d.resigned>0).sort((a,b)=>b.resigned-a.resigned)[0];
+  const rate = total > 0 ? ((resTotal/(total+resTotal))*100).toFixed(1) : 0;
+
+  document.querySelector('.resigned-section').innerHTML = `
+    <div class="section-label">สถิติการลาออก / ย้ายออก</div>
+    <div class="res-stats-grid">
+      <div class="res-stat-card"><div style="font-size:22px">📤</div><div class="res-stat-num" style="color:var(--red)">${resTotal}</div><div class="res-stat-label">พนักงานลาออก/ย้ายออกทั้งหมด</div></div>
+      <div class="res-stat-card"><div style="font-size:22px">🏭</div><div class="res-stat-num" style="color:var(--accent4)">${maxDept?maxDept.resigned:0}</div><div class="res-stat-label">สูงสุดใน ${maxDept?maxDept.name:'-'}</div></div>
+      <div class="res-stat-card"><div style="font-size:22px">📊</div><div class="res-stat-num" style="color:var(--accent2)">${rate}%</div><div class="res-stat-label">อัตราการลาออก</div></div>
+    </div>
+    <div class="res-charts-grid">
+      <div class="card">
+        <div class="card-title"><span>📊</span> จำนวนลาออกแยกตามฝ่าย <span style="font-size:12px;color:var(--muted);font-weight:400">(คลิกเพื่อดูรายชื่อ)</span></div>
+        <div id="resByDeptChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>🔖</span> ประเภทการออก</div>
+        <div id="resByStatusChart"></div>
+      </div>
+    </div>
+    <!-- Modal รายชื่อ -->
+    <div id="resModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;display:none;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:28px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:700" id="modalTitle"></div>
+          <button onclick="closeResModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+        </div>
+        <div id="modalBody"></div>
+      </div>
+    </div>`;
+
+  // Bar chart by dept
+  const byDept = depts.filter(d=>d.resigned>0).sort((a,b)=>b.resigned-a.resigned);
+  const maxRes = Math.max(...byDept.map(d=>d.resigned));
+  document.getElementById('resByDeptChart').innerHTML = byDept.map(d=>`
+    <div class="res-bar-row" style="cursor:pointer" onclick="showResModal('${d.name}', window._depts)">
+      <div class="res-bar-label">${d.icon} ${d.name}</div>
+      <div class="res-bar-wrap">
+        <div class="res-bar-fill" style="width:${Math.round(d.resigned/maxRes*100)}%;background:#ef444420;color:var(--red)">${d.resigned} คน</div>
+      </div>
+      <div class="res-bar-count" style="color:var(--red)">${d.resigned}</div>
+    </div>`).join('');
+
+  // Status breakdown
+  const statusCount = {};
+  resigned.forEach(r => { const s=r['Status']||'Resigned'; statusCount[s]=(statusCount[s]||0)+1; });
+  const statusColors = {'Resigned':'var(--red)','Rotate - ย้ายออก':'var(--accent4)'};
+  const maxStatus = Math.max(...Object.values(statusCount));
+  document.getElementById('resByStatusChart').innerHTML = Object.entries(statusCount).map(([s,c])=>`
+    <div class="res-status-row">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${statusColors[s]||'var(--muted)'}"></div><span style="font-size:13px">${s}</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:80px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)"><div style="width:${Math.round(c/maxStatus*100)}%;height:100%;background:${statusColors[s]||'var(--muted)'}"></div></div>
+        <span style="font-size:13px;font-weight:700;color:${statusColors[s]||'var(--muted)'}">${c} คน</span>
+      </div>
+    </div>`).join('');
+}
+
+function showResModal(deptName, depts) {
+  const dept = depts.find(d=>d.name===deptName);
+  if(!dept || dept.resignedEmps.length===0) return;
+  document.getElementById('modalTitle').textContent = `${dept.icon} ${dept.name} — ออกงาน ${dept.resigned} คน`;
+  document.getElementById('modalBody').innerHTML = dept.resignedEmps.map(e=>`
+    <div style="padding:10px 14px;border-radius:10px;background:var(--bg);border:1px solid rgba(239,68,68,.12);margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600">${e.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${e.pos}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;background:rgba(239,68,68,.08);color:var(--red)">${e.status}</span>
+        ${e.date ? `<span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${e.date}</span>` : ''}
+      </div>
+    </div>`).join('');
+  const modal = document.getElementById('resModal');
+  modal.style.display = 'flex';
+}
+
+function closeResModal() {
+  document.getElementById('resModal').style.display = 'none';
+}
+
+// ===== DETAIL PAGE =====
+function openDept(i, depts, total) {
+  const d = depts[i];
+  document.getElementById('detailIcon').textContent = d.icon;
+  document.getElementById('detailIcon').style.background = `#${d.color}20`;
+  document.getElementById('detailName').textContent = d.name;
+  document.getElementById('detailDesc').textContent = `พนักงาน Active ${d.actual} คน · ${Object.keys(d.sites).join(', ')}`;
+
+  document.getElementById('detailKpi').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-icon">${d.icon}</div><div class="kpi-label">Active</div><div class="kpi-value blue">${d.actual}</div><div class="kpi-sub">คน ใน ${Object.keys(d.sites).length} Site</div></div>
+    <div class="kpi-card green"><div class="kpi-icon">📌</div><div class="kpi-label">แผนกย่อย</div><div class="kpi-value green">${d.sections.length||'-'}</div><div class="kpi-sub">${d.sections.length>0?'แผนกในฝ่ายนี้':'ไม่แยกแผนก'}</div></div>
+    <div class="kpi-card orange"><div class="kpi-icon">📊</div><div class="kpi-label">สัดส่วนในสายงาน</div><div class="kpi-value orange">${Math.round(d.actual/total*100)}%</div><div class="kpi-sub">จากทั้งหมด ${total} คน</div></div>
+    <div class="kpi-card red"><div class="kpi-icon">📤</div><div class="kpi-label">Resigned/ย้ายออก</div><div class="kpi-value red">${d.resigned}</div><div class="kpi-sub"><span class="neg">${d.resigned>0?'มีการลาออก':'ไม่มีการลาออก'}</span></div></div>`;
+
+  const avatarColors=['#0ea5e9','#6366f1','#10b981','#f59e0b','#ec4899','#ef4444','#64748b','#14b8a6'];
+  document.getElementById('empTableBody').innerHTML = d.employees.map((e,i)=>`
+    <tr><td><span class="emp-avatar" style="background:${avatarColors[i%8]}20;color:${avatarColors[i%8]}">${(e.name||' ').slice(2,3)||'?'}</span>${e.name}</td>
+    <td style="font-size:12px;color:var(--muted)">${e.pos}</td>
+    <td><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:#${d.color}15;color:#${d.color}">${e.level}</span></td>
+    <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${e.site}</td></tr>`).join('');
+
+  document.getElementById('posList').innerHTML = d.sections.length>0
+    ? d.sections.map(s=>`<div class="pos-item"><div class="pos-title">${s.name}</div><div class="pos-meta"><span>${s.count} คน</span><span style="color:#${d.color};font-weight:600">${Math.round(s.count/d.actual*100)}%</span></div><div class="bar-wrap" style="margin-top:6px"><div class="bar-fill" style="width:${Math.round(s.count/d.actual*100)}%;background:#${d.color}"></div></div></div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:12px 0">ไม่มีการแบ่งแผนกย่อย</div>';
+
+  document.getElementById('siteChips').innerHTML = Object.entries(d.sites).map(([k,v])=>`<span class="site-chip">${k}: ${v} คน</span>`).join('');
+
+  const levelColors = {'Director':'#1e3a5f','Manager':'#6366f1','Section Mgr.':'#0ea5e9','Supervisor':'#10b981','ป.ตรี':'#f59e0b','ปวส.':'#ec4899','Skilled':'#64748b'};
+  const maxL = Math.max(...Object.values(d.levels));
+  document.getElementById('levelBars').innerHTML = Object.entries(d.levels).sort((a,b)=>b[1]-a[1]).map(([lv,cnt])=>`
+    <div class="level-row">
+      <div class="level-name">${lv}</div>
+      <div class="level-bar-wrap"><div class="level-bar" style="width:${Math.round(cnt/maxL*100)}%;background:${levelColors[lv]||'#64748b'}20;color:${levelColors[lv]||'#64748b'}">${cnt} คน</div></div>
+      <div class="level-count">${cnt}</div>
+    </div>`).join('');
+
+  document.getElementById('detailResigned').innerHTML = d.resignedEmps.length>0
+    ? d.resignedEmps.map(e=>`<div class="res-item"><div><div class="res-item-name">${e.name}</div><div class="res-item-pos">${e.pos}</div></div><span class="res-status-badge">${e.status}</span></div>`).join('')
+    : '<div style="color:var(--accent3);font-size:13px;padding:8px 0">✓ ไม่มีพนักงานลาออก</div>';
+
+  document.getElementById('page-main').classList.remove('active');
+  document.getElementById('page-detail').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goBack(){
+  document.getElementById('page-detail').classList.remove('active');
+  document.getElementById('page-main').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ===== FETCH FROM GOOGLE SHEET =====
+showLoading();
+fetch(SHEET_URL)
+  .then(r => { if(!r.ok) throw new Error('โหลดไม่ได้'); return r.text(); })
+  .then(csv => {
+    const rows = parseCSV(csv);
+    if(rows.length === 0) throw new Error('ไม่พบข้อมูล');
+    const data = processData(rows);
+    renderDashboard(data);
+  })
+  .catch(err => {
+    showError('ไม่สามารถโหลดข้อมูลจาก Google Sheet ได้<br><span style="font-size:12px">กรุณาตรวจสอบว่า Sheet เปิด Public แล้ว</span>');
+    console.error(err);
+  });
+
+</script>
+</body>
+</html>
